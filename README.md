@@ -1,168 +1,185 @@
-# Credit Card Fraud Detection
+# 💳 Credit Card Fraud Detection System
 
-Detecting fraudulent credit card transactions using machine learning on a
-real-world, **highly imbalanced** dataset (fraud makes up just 0.17% of all
-transactions). This project focuses as much on handling that imbalance
-correctly as it does on model choice — accuracy is a misleading metric here,
-so the evaluation is built around precision, recall, F1, and ROC-AUC instead.
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Scikit-Learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)
+![XGBoost](https://img.shields.io/badge/XGBoost-1.7+-2C3E50?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)
 
-## Table of Contents
-- [Overview](#overview)
-- [Dataset](#dataset)
-- [Project Goals](#project-goals)
-- [Methodology](#methodology)
-- [Models](#models)
-- [Evaluation](#evaluation)
-- [Results](#results)
-- [Project Structure](#project-structure)
-- [Installation & Usage](#installation--usage)
-- [Tech Stack](#tech-stack)
-- [Progress Log](#progress-log)
-- [Future Work](#future-work)
+An end-to-end Machine Learning pipeline for detecting fraudulent credit card transactions on a **severely imbalanced real-world dataset** (0.173% fraud rate). 
 
-## Overview
+This repository focuses on rigorous **class-imbalance handling**, business-aligned **cost optimization**, and evaluating models using **Precision, Recall, and PR-AUC** rather than misleading accuracy metrics.
 
-Credit card fraud detection is a classic **imbalanced classification**
-problem: fraudulent transactions are rare, costly to miss, and easy for a
-naive model to ignore entirely while still claiming 99.8% accuracy. This
-project works through the problem properly — from EDA, to imbalance
-handling, to choosing metrics that actually reflect performance on the
-minority class, to comparing models on equal footing.
+---
 
-## Dataset
+## 📌 Table of Contents
+- [Overview](#-overview)
+- [Dataset Summary](#-dataset-summary)
+- [Master Project Roadmap](#-master-project-roadmap)
+- [Phase 1: Exploratory Data Analysis Key Findings](#-phase-1-exploratory-data-analysis-key-findings)
+- [Project Goals & Progress](#-project-goals--progress)
+- [Models & Evaluation Strategy](#-models--evaluation-strategy)
+- [Project Structure](#-project-structure)
+- [Installation & Quickstart](#-installation--quickstart)
+- [Progress Log](#-progress-log)
+- [License](#-license)
 
-- Source: [Credit Card Fraud Detection Dataset (Kaggle)](https://www.kaggle.com/mlg-ulb/creditcardfraud)
-- 284,807 transactions over two days, made by European cardholders
-- 492 fraudulent transactions (**0.17%** of total) — severe class imbalance
-- Features `V1`–`V28` are PCA-anonymized for confidentiality; `Time` and
-  `Amount` are the only non-transformed features
-- Target: `Class` (1 = fraud, 0 = legitimate)
+---
 
-## Project Goals
+## 🔍 Overview
 
-- [x] Exploratory Data Analysis (EDA)
-- [x] Class imbalance analysis
-- [ ] Understand fraud patterns (transaction amount, time-of-day trends, feature correlations)
-- [ ] Handle class imbalance (SMOTE, class weighting, and/or undersampling — compared, not assumed)
-- [ ] Train and compare multiple ML models
-- [ ] Evaluate using Precision, Recall, F1-score, ROC-AUC, and PR-AUC
-- [ ] Select and justify a final model based on business cost trade-offs
-- [ ] Deploy the final model (API or simple web demo)
+Credit card fraud detection is a classic **imbalanced classification** problem:
+* Fraudulent transactions are rare, costly to miss, and easy for a naive model to ignore while still claiming **99.83% accuracy**.
+* A baseline model predicting "Legitimate" for every transaction achieves 99.83% accuracy while catching **0% of fraud cases (0% Recall)**.
 
-## Methodology
+This project implements a complete, recruiter-grade machine learning workflow — from exploratory data analysis to feature engineering, imbalanced sampling (SMOTE & class weighting), threshold tuning, and production API deployment.
 
-1. **EDA** — class distribution, transaction amount distributions for fraud
-   vs. legitimate, correlation heatmap of `V1`–`V28`, time-of-day patterns.
-2. **Preprocessing** — scale `Amount` and `Time` (the only unscaled
-   features, since `V1`–`V28` are already PCA-transformed).
-3. **Train/test split** — **stratified**, so the tiny fraud class is
-   represented proportionally in both sets. Done *before* any resampling,
-   so the test set stays a realistic, untouched sample of real-world data.
-4. **Class imbalance handling** — compare at least two approaches rather
-   than assuming one is best:
-   - Class weighting (`class_weight='balanced'`)
-   - SMOTE (synthetic oversampling of the minority class) — applied **only
-     to the training set**, never the test set, to avoid leaking synthetic
-     patterns into evaluation
-   - Random undersampling of the majority class, as a baseline comparison
-5. **Model training** — see [Models](#models).
-6. **Threshold tuning** — the default 0.5 probability cutoff is rarely
-   optimal for imbalanced problems. Use the precision-recall curve to pick
-   a threshold that matches the actual cost trade-off (missing fraud vs.
-   flagging legitimate transactions).
+---
 
-## Models
+## 📊 Dataset Summary
 
-| Model | Why it's included |
-|---|---|
-| Logistic Regression | Simple, interpretable, fast baseline |
-| Random Forest | Handles nonlinearity and feature interactions well |
-| XGBoost | Strong performance on tabular, imbalanced data; supports `scale_pos_weight` |
+* **Source:** [Credit Card Fraud Detection Dataset (Kaggle)](https://www.kaggle.com/mlg-ulb/creditcardfraud)
+* **Total Transactions:** 284,807 transactions over 48 hours (European cardholders)
+* **Class Breakdown:** 
+  * `Class 0` (Legitimate): **284,315** (99.827%)
+  * `Class 1` (Fraudulent): **492** (**0.173%**)
+* **Features:** 
+  * `V1`–`V28`: PCA-anonymized numerical features (due to confidentiality)
+  * `Time`: Seconds elapsed since the first transaction
+  * `Amount`: Transaction dollar amount
+  * `Class`: Target variable (`1` = Fraud, `0` = Legitimate)
 
-## Evaluation
+---
 
-Accuracy is intentionally **not** the headline metric — a model that
-predicts "not fraud" every single time scores 99.83% accuracy while
-catching zero fraud. Instead:
-
-- **Precision** — of transactions flagged as fraud, how many actually were?
-- **Recall** — of actual fraud cases, how many did we catch?
-- **F1-score** — harmonic mean of precision and recall
-- **ROC-AUC** — overall ranking ability across thresholds
-- **PR-AUC (average precision)** — often more informative than ROC-AUC on
-  severely imbalanced data, since it focuses on minority-class performance
-- **Confusion matrix** — to see the actual count of false negatives (missed
-  fraud) vs. false positives (legitimate transactions flagged)
-
-## Results
-
-> To be filled in once models are trained — keep this table updated as you go.
-
-| Model | Precision | Recall | F1-Score | ROC-AUC | PR-AUC |
-|---|---|---|---|---|---|
-| Logistic Regression | – | – | – | – | – |
-| Random Forest | – | – | – | – | – |
-| XGBoost | – | – | – | – | – |
-
-## Project Structure
+## 🗺️ Master Project Roadmap
 
 ```
-credit-card-fraud-detection/
-├── data/                   # raw and processed data (gitignored if large)
+Phase 1: Exploratory Data Analysis (EDA) 🔍 [COMPLETED]
+  ├── Class imbalance verification (99.83% vs 0.17%)
+  ├── Financial retry & duplicate log analysis (Retained 1,081 duplicate records)
+  ├── Behavioral distribution analysis (Nighttime fraud peak & micro-charge testing)
+  └── Discriminative feature discovery (V17, V14, V12, V10, V11, V4)
+
+Phase 2: Preprocessing & Data Pipeline Setup ⚙️ [NEXT]
+  ├── Robust scaling for unscaled features (Amount & Time)
+  └── Stratified Train/Test splitting (80/20 ratio) before resampling
+
+Phase 3: Class Imbalance Handling ⚖️
+  ├── Algorithmic Cost-Sensitive Weighting (scale_pos_weight / class_weight)
+  ├── Synthetic Minority Oversampling (SMOTE on training split only)
+  └── Majority Undersampling Baseline
+
+Phase 4: Model Exploration & Benchmarking 📊
+  ├── Baseline: Logistic Regression (Cost-sensitive)
+  ├── Non-linear: Random Forest Classifier
+  └── Gradient Boosting: XGBoost / LightGBM
+
+Phase 5: Evaluation & Threshold Optimization 🎯
+  ├── Evaluate using Precision, Recall, F1-Score, and PR-AUC
+  └── Precision-Recall Curve threshold tuning for cost trade-offs
+
+Phase 6: Explainability & Deployment 🚀
+  ├── Model explainability with SHAP (SHapley Additive exPlanations)
+  └── Lightweight REST API (FastAPI) for live transaction scoring
+```
+
+---
+
+## 💡 Phase 1: Exploratory Data Analysis Key Findings
+
+> [!IMPORTANT]
+> **Key Analytical Takeaways from EDA:**
+
+1. **Domain Decision on Duplicates:** Retained all **1,081 duplicate transactions** (including 19 fraud duplicates). In financial processing, duplicate log entries represent real-world events such as automated subscription retries, double-billing glitches, or rapid repeated card testing.
+2. **Nighttime Exploitation Peak (Time Analysis):**
+   * Legitimate transactions drop significantly between **1:00 AM and 5:00 AM** (due to normal sleep cycles).
+   * Fraudulent transaction density **peaks sharply between 1:00 AM and 4:00 AM**, indicating fraudsters intentionally strike when cardholders are asleep and unable to review immediate bank alerts.
+3. **Card Testing Micro-Charges (Amount Analysis):**
+   * Over **14% of fraudulent transactions** are concentrated under **$50**, representing automated "card testing" micro-authorizations.
+   * Fraudulent amounts cap around **$2,125**, whereas legitimate transactions include large enterprise outliers up to **$25,691**.
+4. **Top Discriminative Features:**
+   * **Strongest Negative Correlators:** `V17` (-0.326), `V14` (-0.302), `V12` (-0.261), `V10` (-0.217)
+   * **Strongest Positive Correlators:** `V11` (+0.155), `V4` (+0.133)
+
+---
+
+## 🎯 Project Goals & Progress
+
+- [x] **Exploratory Data Analysis (EDA)** — Class distribution, distributions of `Amount` & `Time`, and PCA correlation analysis
+- [x] **Data Hygiene & Domain Rules** — Imbalance verification and duplicate log retaining logic
+- [ ] **Feature Engineering & Preprocessing** — Scale `Amount` and `Time` using `RobustScaler`; Stratified 80/20 split
+- [ ] **Class Imbalance Handling** — Compare Class-Weighting, SMOTE, and Random Undersampling
+- [ ] **Model Exploration & Benchmarking** — Train Logistic Regression, Random Forest, and XGBoost
+- [ ] **Threshold Tuning** — Optimize probability cutoffs on the Precision-Recall curve
+- [ ] **Explainability & API Deployment** — SHAP feature attribution & FastAPI service
+
+---
+
+## 🧪 Models & Evaluation Strategy
+
+### Models Included
+| Model | Type | Objective |
+|---|---|---|
+| **Logistic Regression** | Baseline | Linear interpretability & cost-sensitive benchmark |
+| **Random Forest** | Tree Ensemble | Captures non-linear feature interactions without feature scaling dependency |
+| **XGBoost** | Gradient Boosting | State-of-the-art performance on imbalanced tabular data (`scale_pos_weight`) |
+
+### Evaluation Metrics Focus
+* **Recall (Sensitivity):** Percentage of actual frauds caught (minimizing False Negatives / missed fraud).
+* **Precision:** Percentage of flagged transactions that are actually fraud (minimizing False Positives / user friction).
+* **PR-AUC (Precision-Recall Area Under Curve):** Primary metric for imbalanced data evaluation.
+* **Confusion Matrix:** Detailed accounting of False Negatives vs. False Positives.
+
+---
+
+## 📁 Project Structure
+
+```
+credit_card_fraud_detection_ML/
+├── data/                   # Raw and processed datasets (gitignored)
 ├── notebooks/
-│   ├── 01_eda.ipynb
-│   ├── 02_preprocessing.ipynb
-│   └── 03_modeling.ipynb
-├── src/
-│   ├── preprocessing.py
-│   ├── train.py
-│   └── evaluate.py
-├── models/                 # saved trained models
-├── requirements.txt
-└── README.md
+│   └── cc_fraud.ipynb      # Main EDA, Preprocessing, and Modeling Notebook
+├── models/                 # Saved model binaries (.pkl / .json)
+├── src/                    # Modularized production scripts (Preprocessing, Train, Evaluate)
+├── requirements.txt        # Project dependencies
+├── implementation_plan.md  # Detailed technical roadmap & interview guide
+└── README.md               # Project documentation
 ```
 
-## Installation & Usage
+---
+
+## 💻 Installation & Quickstart
 
 ```bash
-git clone https://github.com/<your-username>/credit-card-fraud-detection.git
-cd credit-card-fraud-detection
+# Clone repository
+git clone https://github.com/PIYUSH-1O1/credit_card_fraud_detection_ML.git
+cd credit_card_fraud_detection_ML
+
+# Create and activate virtual environment
+python -m venv venv
+# On Windows:
+.\venv\Scripts\activate
+# On Linux/macOS:
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-Download the dataset from Kaggle and place `creditcard.csv` in `data/`,
-then run the notebooks in order, or:
+---
 
-```bash
-python src/train.py --model xgboost
-python src/evaluate.py --model xgboost
-```
+## 📈 Progress Log
 
-## Tech Stack
+* **Phase 1 (Completed):** 
+  * Project environment & GitHub setup.
+  * Complete Exploratory Data Analysis (EDA).
+  * Imbalanced target analysis (99.827% vs 0.173%).
+  * Visualized transaction `Amount` (log-scale boxplots & density plots) and `Time` 24-hour cycle distributions.
+  * Identified top predictive PCA features (`V17`, `V14`, `V12`, `V10`, `V11`, `V4`).
+* **Phase 2 (In Progress):**
+  * Data preprocessing pipeline setup (`RobustScaler` & Stratified Train/Test split).
 
-- Python
-- Pandas, NumPy
-- Matplotlib, Seaborn
-- Scikit-learn
-- imbalanced-learn (SMOTE)
-- XGBoost
+---
 
-## Progress Log
+## 📄 License
 
-**Day 1**
-- Project and GitHub repository setup
-- Initial dataset exploration
-- Class imbalance analysis
-
-**Day 2** *(update as you go)*
-- [ ] ...
-
-## Future Work
-
-- Cost-sensitive evaluation: assign real dollar costs to false
-  positives/negatives and optimize threshold against that, not just F1
-- Compare anomaly-detection approaches (Isolation Forest, Autoencoders) as
-  an alternative framing to supervised classification
-- Model explainability with SHAP — which features drive fraud predictions?
-- Deploy via a lightweight API (FastAPI/Flask) with a simple front end for
-  live transaction scoring
+This project is licensed under the **MIT License**.
